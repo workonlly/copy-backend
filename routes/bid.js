@@ -105,4 +105,23 @@ router.put("/assigning/:id", auth, async (req, res) => {
     res.json(data.rows[0]);
 });
 
+router.delete("/complete/:id", auth, async (req, res) => {
+   const { id } = req.params;
+   const {review}= req.body;
+   const saradata = await pool.query("SELECT * FROM jobs WHERE id=$1", [id]);
+   if (saradata.rows.length === 0) return res.status(404).json({ message: "Job not found" });
+   const reviewdata= await pool.query("INSERT INTO comments (user_id, comment) VALUES ($1, $2) RETURNING *", [saradata.rows[0].assigned_user_id, review]);
+    const data = await pool.query("DELETE FROM jobs WHERE id=$1 RETURNING *", [id]);
+    res.json("Job Completed Successfully");
+});
+
+router.get("/completed/:id",auth, async (req, res) => {
+    const { id } = req.params;
+    const data = await pool.query("SELECT * FROM jobs WHERE id=$1 AND progress=$2", [id,"pending"]);
+    if (data.rows.length === 0) return res.json([])
+    const jobs = data.rows[0];
+    const final = await pool.query("SELECT * FROM users WHERE id = $1", [jobs.assigned_user_id]);
+    res.json(final.rows[0]);
+});
+
 module.exports=router;
