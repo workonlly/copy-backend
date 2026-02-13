@@ -25,7 +25,7 @@ const postServices = async (req, res) => {
         // 2. Upload Images to MinIO
         let imageUrls = [];
         if (files && files.length > 0) {
-            const bucketName = 'copywrightimg';
+            const bucketName = process.env.S3_BUCKET_NAME;
             const uploadPromises = files.map(async (file) => {
                 // Sanitize filename
                 const fileName = `job-${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
@@ -37,7 +37,7 @@ const postServices = async (req, res) => {
                     ContentType: file.mimetype,
                 }));
                 // Construct URL
-                return `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${bucketName}/${fileName}`;
+                return `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
             });
             imageUrls = await Promise.all(uploadPromises);
         }

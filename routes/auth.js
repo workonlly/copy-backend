@@ -5,7 +5,9 @@ const pool = require("../config/db");
 const multer = require("multer");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const { s3Client } = require("../config/minio");
+const { OAuth2Client } = require('google-auth-library');
 
+const client = new OAuth2Client(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 const router = express.Router();
 
 // Multer config (memory storage)
@@ -37,7 +39,7 @@ router.post("/signup", upload.single("pic"), async (req, res) => {
 
     // 2. Upload image to MinIO (if provided)
     if (file) {
-      const bucketName = "accounts";
+      const bucketName = process.env.S3_BUCKET_NAME;
       const fileName = `${Date.now()}-${file.originalname}`;
 
       const command = new PutObjectCommand({
@@ -49,7 +51,7 @@ router.post("/signup", upload.single("pic"), async (req, res) => {
 
       await s3Client.send(command);
 
-      imageUrl = `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${bucketName}/${fileName}`;
+      imageUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
     }
 
     // 3. Hash password
@@ -125,6 +127,65 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("LOGIN ERROR:", err);
     res.status(500).json({ msg: "Server error" });
+  }
+});
+
+router.post("/google", async (req, res) => {
+  const { token } = req.body;
+
+  // Validate token is provided
+  if (!token) {
+    return res.status(400).json({ error: "Token is required" });
+  }
+
+  try {
+    // A. Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { email, name, picture } = ticket.getPayload();
+
+    // B. Check if user exists in YOUR DB
+    const userCheck = await pool.query("SELECT id, email, name, image_url FROM users WHERE email = $1", [email]);
+    let user = userCheck.rows[0];
+
+    // C. If not, create them (Sign Up)
+    if (!user) {
+      try {
+        const newUser = await pool.query(
+          "INSERT INTO users (name, email, image_url) VALUES ($1, $2, $3) RETURNING id, email, name, image_url",
+          [name, email, picture]
+        );
+        user = newUser.rows[0];
+      } catch (dbErr) {
+        console.error("Database insert error:", dbErr);
+        return res.status(500).json({ error: "Failed to create user" });
+      }
+    }
+
+    // D. Generate YOUR App's Token
+    const appToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET, 
+      { expiresIn: "7d" }
+    );
+
+    // E. Send back the token + user data (sanitized)
+    res.status(200).json({ 
+      token: appToken, 
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image_url: user.image_url
+      }
+    });
+
+  } catch (err) {
+    console.error("Google Auth Error:", err);
+    res.status(400).json({ error: "Google verification failed" });
   }
 });
 

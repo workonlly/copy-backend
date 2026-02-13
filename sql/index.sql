@@ -4,7 +4,6 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,
   known_id JSON,
   token INT DEFAULT 15,
@@ -47,8 +46,9 @@ CREATE TABLE IF NOT EXISTS conversations (
   room_id VARCHAR(50),    -- thread/chat id (you control this in app)
   user_id INT,
   conversant_id INT,             -- both user IDs in one array
-  conversation VARCHAR(255) ,
+  conversation JSONB,              -- store messages as JSON array,
   chat_recharge BOOLEAN DEFAULT FALSE,
+  recharge_expires_at TIMESTAMP,   -- expiry time for chat recharge
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -1,12 +1,27 @@
-const {Pool}=require('pg');
+const { Pool } = require('pg');
 require("dotenv").config();
 
-const pool=new Pool({
-host: process.env.DB_HOST,
+const pool = new Pool({
+  host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-})
+  ssl: {
+    // This allows the connection to be encrypted without 
+    // manually providing the certificate file path on Windows.
+    rejectUnauthorized: false 
+  }
+});
 
-module.exports=pool;
+// Optional: Log when the database connects successfully
+pool.on('connect', () => {
+  console.log('Connected to the AWS RDS database');
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
+
+module.exports = pool;

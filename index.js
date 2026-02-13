@@ -11,6 +11,7 @@ const auth = require("./middleware/auth");
 const conversation = require("./routes/coversation");
 const { postServices } = require("./middleware/postservice");
 const tokenRoutes = require("./routes/token");
+const socket=require("./bullmq/socket");
 
 const { connectKafka } = require("./kafka/kafka");
 const { startChatConsumer } = require("./kafka/chatconsumer");
@@ -18,7 +19,6 @@ const chatRoutes = require("./routes/chat");
 
 // 1. You need these imports (You already had them)
 const http = require("http");
-const { Server } = require("socket.io");
 
 const app = express();
 
@@ -28,18 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // 2. CREATE THE HTTP SERVER (Crucial Step: Wrap express app)
 const server = http.createServer(app);
+socket(server); 
 
-// 3. INITIALIZE SOCKET.IO (Define 'io' here)
-const io = new Server(server, {
-  cors: {
-    origin: [
-      'http://localhost:3000',           // Local dev
-      'http://10.132.159.29:3000',      // Your network IP
-      'http://192.168.77.29:3000'       // Other IPs you use
-    ],
-    credentials: true
-  }
-});
 
 app.use(cors({ 
   origin: [
@@ -62,23 +52,7 @@ app.get('/api/profile', auth, async (req, res) => {
   res.json({ user: req.user });
 });
 
-// --- SOCKET LOGIC ---
-io.on("connection", (socket) => {
-  console.log("Socket Connected:", socket.id);
 
-  // Join Personal Room
-  socket.on("join_room", (userId) => {
-    socket.join(userId.toString());
-    console.log(`User ${userId} joined room ${userId}`);
-  });
-
-  socket.on("disconnect", () => console.log("Socket Disconnected"));
-});
-
-// --- KAFKA & WORKER ---
-connectKafka().then(() => {
-  startChatConsumer(io); // Pass the socket instance to the worker!
-});
 
 app.use("/chat", chatRoutes);
 

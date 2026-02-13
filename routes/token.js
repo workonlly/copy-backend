@@ -7,7 +7,7 @@ router.put("/minusone",auth, async (req, res) => {
 const id = req.user.id;
 try {
     // Check current tokens
-    const userResult = await pool.query("SELECT tokens FROM users WHERE id = $1", [id]);
+    const userResult = await pool.query("SELECT token FROM users WHERE id = $1", [id]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -16,7 +16,7 @@ try {
       return res.status(400).json({ message: "insufficient token" });
     }
     const result = await pool.query(
-      "UPDATE users SET tokens = tokens - 1 WHERE id = $1 RETURNING tokens",
+      "UPDATE users SET token = token - 1 WHERE id = $1 RETURNING token",
       [id]
     );
     res.json({ tokens: result.rows[0].tokens });
@@ -29,7 +29,7 @@ router.put("/minusfive",auth, async (req, res) => {
 const id = req.user.id;
 try {
     // Check current tokens
-    const userResult = await pool.query("SELECT tokens FROM users WHERE id = $1", [id]);
+    const userResult = await pool.query("SELECT token FROM users WHERE id = $1", [id]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -38,7 +38,7 @@ try {
       return res.status(400).json({ message: "insufficient token" });
     }
     const result = await pool.query(
-      "UPDATE users SET tokens = tokens - 5 WHERE id = $1 RETURNING tokens",
+      "UPDATE users SET token = token - 5 WHERE id = $1 RETURNING token",
       [id]
     );
     res.json({ tokens: result.rows[0].tokens });

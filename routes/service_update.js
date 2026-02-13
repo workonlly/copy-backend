@@ -19,7 +19,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Order matters! auth checks token first, then upload processes files.
 router.put("/:id", auth, upload.array("images"), async (req, res) => {
   const { id } = req.params;
-  const bucketName = "copywrightimg"; 
+  const bucketName = process.env.S3_BUCKET_NAME; 
 
   try {
     const postQuery = await pool.query("SELECT * FROM jobs WHERE id = $1", [id]);
@@ -68,7 +68,7 @@ router.put("/:id", auth, upload.array("images"), async (req, res) => {
             Body: file.buffer,
             ContentType: file.mimetype,
         }));
-        updatedImageUrls.push(`http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${bucketName}/${fileName}`);
+        updatedImageUrls.push(`https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`);
       }
     }
 
@@ -104,7 +104,7 @@ router.put("/:id", auth, upload.array("images"), async (req, res) => {
 // 3. Added 'auth' here as well
 router.delete("/:id", auth, async (req, res) => {
     const { id } = req.params;
-    const bucketName = "copywrightimg"; 
+    const bucketName = process.env.S3_BUCKET_NAME; 
 
     try {
         const postQuery = await pool.query("SELECT * FROM jobs WHERE id = $1", [id]);
