@@ -133,19 +133,29 @@ router.post("/login", async (req, res) => {
 router.post("/google", async (req, res) => {
   const { token } = req.body;
 
+  // Debug logging
+  console.log('📥 Google OAuth Request:', {
+    hasToken: !!token,
+    tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
+    clientId: process.env.GOOGLE_CLIENT_ID
+  });
+
   // Validate token is provided
   if (!token) {
+    console.error('❌ No token provided in request body');
     return res.status(400).json({ error: "Token is required" });
   }
 
   try {
     // A. Verify the token with Google
+    console.log('🔍 Verifying token with Google...');
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const { email, name, picture } = ticket.getPayload();
+    console.log('✅ Token verified for:', email);
 
     // B. Check if user exists in YOUR DB
     const userCheck = await pool.query("SELECT id, email, name, image_url FROM users WHERE email = $1", [email]);
@@ -184,8 +194,16 @@ router.post("/google", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Google Auth Error:", err);
-    res.status(400).json({ error: "Google verification failed" });
+    console.error("❌ Google Auth Error:", err.message);
+    console.error("Error details:", {
+      name: err.name,
+      message: err.message,
+      stack: err.stack?.split('\n')[0]
+    });
+    res.status(400).json({ 
+      error: "Google verification failed",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 
