@@ -9,20 +9,24 @@ const setupSocket = (server) => {
 
   // 2. Initialize the BullMQ Queue
   const chatQueue = new Queue("chat-queue", { 
-    connection: { host: "localhost", port: 6379 ,family:4 } 
+    connection: { 
+      host: process.env.REDIS_HOST || "localhost", 
+      port: parseInt(process.env.REDIS_PORT) || 6379,
+      family: 4 
+    } 
   });
 
   // 3. Database Pool for Expiry Checks
   const pool = require("../config/db");
 
-  // 3. Initialize Socket.io
+  // 3. Initialize Socket.io with CORS from environment
+  const allowedOrigins = process.env.CORS_ORIGINS 
+    ? process.env.CORS_ORIGINS.split(',') 
+    : ['http://localhost:3000'];
+
   const io = new Server(server, {
     cors: {
-      origin: [
-        'http://localhost:3000',           // Local dev
-        'http://10.132.159.29:3000',      // Network IP
-        'http://192.168.77.29:3000'       // Other IPs
-      ],
+      origin: allowedOrigins,
       credentials: true
     }
   });

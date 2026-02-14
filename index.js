@@ -31,12 +31,13 @@ const server = http.createServer(app);
 socket(server); 
 
 
+// CORS configuration from environment
+const allowedOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',') 
+  : ['http://localhost:3000'];
+
 app.use(cors({ 
-  origin: [
-    'http://localhost:3000',
-    'http://10.132.159.29:3000',
-    'http://192.168.77.29:3000'
-  ],
+  origin: allowedOrigins,
   credentials: true 
 }));
 // --- ROUTES ---
@@ -63,8 +64,9 @@ app.get("/", (req, res) => {
 });
 
 // 4. START SERVER (Change 'app.listen' to 'server.listen')
-// This ensures both the API and WebSockets run on port 4000
-server.listen(4000, '0.0.0.0', () => {
-    console.log("server is running on port 4000");
-    console.log("Server accessible at http://10.132.159.29:4000");
+// This ensures both the API and WebSockets run on the configured port
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server accessible at http://0.0.0.0:${PORT}`);
 });

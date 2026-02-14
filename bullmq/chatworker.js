@@ -61,7 +61,11 @@ const initChatWorker = () => {
       throw err; // BullMQ will retry automatically
     }
   }, { 
-    connection: { host: "localhost", port: 6379, family: 4 } // Redis Config - must match queue connection
+    connection: { 
+      host: process.env.REDIS_HOST || "localhost", 
+      port: parseInt(process.env.REDIS_PORT) || 6379, 
+      family: 4 
+    }
   });
 
   worker.on('completed', (job) => {
